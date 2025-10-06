@@ -1,0 +1,95 @@
+import { GoogleGenAI, Type,FunctionDeclaration   } from "@google/genai";
+import dotenv from "dotenv";
+import fs from "fs";
+
+dotenv.config();
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMENI_API_KEY });
+
+async function appendGreeting(message: string) {
+  const log = `${message} - ${new Date().toISOString()}\n`;
+  fs.appendFileSync("greet.txt", log);
+  return "Greeting saved!";
+}
+
+async function appendFarewell(message: string) {
+  const log = `${message} - ${new Date().toISOString()}\n`;
+  fs.appendFileSync("bye.txt", log);
+  return "Farewell saved!";
+}
+
+
+const functions: FunctionDeclaration[] = [
+  {
+    name: "append_greeting",
+    description: "Appends a greeting message with timestamp to greet.txt",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        message: {
+          type: Type.STRING,
+          description: "The greeting message to append",
+        },
+      },
+      required: ["message"],
+    },
+  },
+  {
+    name: "append_farewell",
+    description: "Appends a farewell message with timestamp to bye.txt",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        message: {
+          type: Type.STRING,
+          description: "The farewell message to append",
+        },
+      },
+      required: ["message"],
+    },
+  },
+];
+
+
+async function main() {
+    const usermessage="what is chat gpt"
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: usermessage,
+    config: {
+      tools: [
+        {
+          functionDeclarations: functions,
+        },
+      ],
+    },
+  });
+
+  if (response.functionCalls && response.functionCalls.length > 0) {
+  for (const fnCall of response.functionCalls) {
+    console.log(`Function: ${fnCall.name}`);
+    console.log(`Args: ${JSON.stringify(fnCall.args, null, 2)}`);
+
+    if (fnCall.name === "append_greeting") {
+      if (fnCall.args && typeof fnCall.args.message === "string") {
+        const result = await appendGreeting(fnCall.args.message as string);
+        console.log(result);
+      } else {
+        console.error("Invalid or missing 'message' argument for append_greeting.");
+      }
+    } else if (fnCall.name === "append_farewell") {
+      if (fnCall.args && typeof fnCall.args.message === "string") {
+        const result = await appendFarewell(fnCall.args.message as string);
+        console.log(result);
+      } else {
+        console.error("Invalid or missing 'message' argument for append_farewell.");
+      }
+    }
+  }
+} else {
+  console.log("No function call. Model said:", response.text);
+}
+
+}
+
+main();

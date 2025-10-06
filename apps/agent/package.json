@@ -1,0 +1,22 @@
+{
+  "name": "agent",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "npm run build && node ./dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@google/genai": "^1.22.0",
+    "@repo/typescript-config": "*",
+    "axios": "^1.12.2",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "*"
+  }
+}
