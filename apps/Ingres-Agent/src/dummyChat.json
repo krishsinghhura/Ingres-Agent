@@ -1,0 +1,6 @@
+{
+    "chat-123": [
+    { "role": "user", "message": "Show me recharge levels in chaiba of 2022" },
+    { "role": "assistant", "message": "In Chaibasa, the total annual groundwater recharge stands at 1683.3 Million Cubic Meters (MCM). The vast majority of this recharge, about 1627.65 MCM, comes directly from rainfall. Other sources also contribute, with water bodies adding 30.38 MCM, agricultural activities contributing 25.25 MCM, and groundwater irrigation accounting for approximately 19.87 MCM to the overall recharge." }
+  ]
+}

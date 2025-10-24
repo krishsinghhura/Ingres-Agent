@@ -1,4 +1,4 @@
-export const INTERPRET_SYSTEM_PROMPT = `
+export const mapBusinessDataPrompt = `
 You are a data understanding and query interpretation agent.
 
 You will be given a **user query related to groundwater or water data in India**.

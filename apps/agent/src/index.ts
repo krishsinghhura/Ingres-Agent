@@ -4,13 +4,12 @@ import { genAI } from "./config/Gemeni";
 import { INTERPRET_SYSTEM_PROMPT } from "./prompts/interpretAdminQuery";
 import { callMapBusinessData } from "./admin/getAdminData";
 
-
 async function interpretUserQuery(userQuery: string) {
   const SYSTEM_PROMPT = INTERPRET_SYSTEM_PROMPT;
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    console.log("hitting for INTERPRET");
-    
+    console.log("Hitting for INTERPRET");
+
     const interpretation = await model.generateContent({
       contents: [
         {
@@ -32,6 +31,7 @@ Return only the JSON response as per the format.`,
     });
 
     const textResponse = interpretation.response.text();
+    console.log("Interpretation Response:", textResponse);
 
     let parsedInterpretation;
     try {
@@ -40,16 +40,23 @@ Return only the JSON response as per the format.`,
       console.error("Failed to parse model output:", textResponse);
       return;
     }
-    console.log("hitting for mapBusinessData");
+    if (!parsedInterpretation.location) {
+      console.warn("Location is null, returning message directly");
+      console.log("Message:", parsedInterpretation.message);
+      return parsedInterpretation.message;
+    }
+
+    console.log("Hitting for mapBusinessData");
     const userResponse = await callMapBusinessData(parsedInterpretation);
-    console.log("Final Data:", userResponse);
+    return userResponse;
+
   } catch (err: any) {
-    console.error(" Error:", err.message);
+    console.error("Error:", err.message);
   }
 }
 
 (async () => {
-  const query =
-    "tell me what is agricultural difference of draft and domestic difference of recharge of WAIDHAN";
-  await interpretUserQuery(query);
+  const query = "Show me recharge levels in chaiba of 2022";
+  const result = await interpretUserQuery(query);
+  console.log("Result:", result);
 })();
