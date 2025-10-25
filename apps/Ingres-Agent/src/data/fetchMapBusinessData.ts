@@ -1,5 +1,4 @@
 import axios from "axios";
-import { NLPJob } from "../helper/NLPJob";
 
 const API_URL = "https://ingres.iith.ac.in/api/gec/mapBusinessData";
 const BASE_PAYLOAD = {
@@ -57,7 +56,7 @@ const BASE_PAYLOAD = {
   ],
 };
 
-export async function callMapBusinessData(interpretation: any) {
+export async function fetchMapBusinessData(interpretation: any) {
   try {
     // Determine the financial year string
     let startYear: number;
@@ -97,8 +96,8 @@ export async function callMapBusinessData(interpretation: any) {
     );
 
     console.log("Hitting for NLP JOB");
-    const finalResponse = await NLPJob(interpretation, match);
-    return finalResponse;
+    
+    return match;
   } catch (error: any) {
     console.error("Error fetching data:", error.message);
     if (error.response) console.error("Response Data:", error.response.data);

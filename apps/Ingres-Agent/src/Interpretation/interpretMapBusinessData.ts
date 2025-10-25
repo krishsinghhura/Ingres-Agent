@@ -1,11 +1,11 @@
 import dotenv from "dotenv";
 dotenv.config();
-import { genAI } from "./config/Gemeni";
-import { INTERPRET_SYSTEM_PROMPT } from "./prompts/interpretAdminQuery";
-import { callMapBusinessData } from "./admin/getAdminData";
+import { genAI } from "../config/Gemeni";
+import { mapBusinessDataPrompt } from "../prompts/mapBusinessDataPrompt";
+import { fetchMapBusinessData } from "../data/fetchMapBusinessData";
 
-async function interpretUserQuery(userQuery: string) {
-  const SYSTEM_PROMPT = INTERPRET_SYSTEM_PROMPT;
+export async function mapBusinessData(userQuery: string) {
+  const SYSTEM_PROMPT = mapBusinessDataPrompt;
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     console.log("Hitting for INTERPRET");
@@ -47,16 +47,10 @@ Return only the JSON response as per the format.`,
     }
 
     console.log("Hitting for mapBusinessData");
-    const userResponse = await callMapBusinessData(parsedInterpretation);
+    const userResponse = await fetchMapBusinessData(parsedInterpretation);
     return userResponse;
 
   } catch (err: any) {
     console.error("Error:", err.message);
   }
 }
-
-(async () => {
-  const query = "Show me recharge levels in chaiba of 2022";
-  const result = await interpretUserQuery(query);
-  console.log("Result:", result);
-})();

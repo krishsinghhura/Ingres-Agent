@@ -1,5 +1,5 @@
-import { getBusinessData } from "../Interpretation/interpretGetBusinessData"; // rename import to match your actual file
-// import { mapBusinessData } from "./mapBusinessData"; // uncomment when available
+import { getBusinessData } from "../Interpretation/interpretGetBusinessData"; 
+import { mapBusinessData } from "../Interpretation/interpretMapBusinessData"; 
 
 export async function researchFunction(
   state: boolean,
@@ -20,8 +20,8 @@ export async function researchFunction(
       };
     } else {
       // ✅ Placeholder until you have mapBusinessData
-      // const result = await mapBusinessData(userQuery, location);
-      const result = { note: "mapBusinessData not yet implemented" };
+      const result = await mapBusinessData(userQuery);
+      // const result = { note: "mapBusinessData not yet implemented" };
       return {
         location,
         state,
