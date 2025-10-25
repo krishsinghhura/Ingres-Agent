@@ -2,7 +2,7 @@ import { genAI } from "../config/Gemeni";
 import { researchFunction } from "../tools/researchFunction";
 import { INDIAN_STATES } from "../utils/stateLists";
 import { SchemaType } from "@google/generative-ai";
-import express,{Request,Response} from "express";
+import express, { Request, Response } from "express";
 
 function isState(location: string) {
   return INDIAN_STATES.some((s) => s.toLowerCase() === location.toLowerCase());
@@ -10,8 +10,9 @@ function isState(location: string) {
 
 export async function handleUserQuery(req: Request, res: Response) {
   const userQuery = req.body.query;
-  const previousChats: { role: string; message: string }[] =
-    req.body.previousChats || []; 
+
+  type Chat = { role: string; message: string };
+  const previousChats: Chat[] = req.body?.previousChats ?? [];
 
   const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
