@@ -4,7 +4,7 @@ import { signinSchema } from "../../validation/auth.types";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecret"; // ideally from .env
+const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 
 export const signinController = async (req: Request, res: Response) => {
   try {
@@ -35,14 +35,14 @@ export const signinController = async (req: Request, res: Response) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { id: user.id, email: user.email },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
 
     return res.status(200).json({
       message: "Signin successful",
-      userId: user.id,
+      id: user.id,
       token,
     });
   } catch (err) {
