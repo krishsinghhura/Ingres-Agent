@@ -1,0 +1,1 @@
+export const BASE_URL="http://43.204.114.81:9001/api"
