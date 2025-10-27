@@ -4,31 +4,54 @@ import { INDIAN_STATES } from "../utils/stateLists";
 import { SchemaType, Part } from "@google/generative-ai";
 import { Request, Response } from "express";
 
-function isState(location: string) {
+/** ✅ Utility: check if given location is an Indian state */
+function isState(location: string): boolean {
   return INDIAN_STATES.some((s) => s.toLowerCase() === location.toLowerCase());
 }
 
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
 export async function handleUserQuery(req: Request, res: Response) {
   try {
-    const userQuery = (req.body.query || "(empty query)").trim();
+    console.log("📥 Incoming body:", JSON.stringify(req.body, null, 2));
 
-    type Chat = { role: string; message: string };
-    const previousChats: Chat[] = req.body?.previousChats ?? [];
+    const userQuery = String(req.body.query || "").trim() || "(empty query)";
+    const previousChats: ChatMessage[] = Array.isArray(req.body?.previousChats)
+      ? req.body.previousChats
+      : [];
 
-    // 1️⃣ Normalize previous chats for Gemini
+    /** 🧹 1️⃣ Normalize and clean previous chats for Gemini */
     const normalizedChats = previousChats
-      .map((m: Chat) => {
-        const content = (m.message || "(no content)").trim();
-        return {
-          role: m.role === "assistant" ? "model" : m.role,
-          parts: [{ text: content }] as Part[],
-        };
-      })
-      .filter((m) => m.parts?.[0]?.text);
+      .filter((m): m is ChatMessage => !!m && !!m.content?.trim())
+      .map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content.trim() }] as Part[],
+      }))
+      .filter((m) => {
+        const text = m.parts?.[0]?.text ?? "";
+        return (
+          text &&
+          !/(no access|previous conversation|cannot fulfill|don’t have)/i.test(text)
+        );
+      });
 
-    // 2️⃣ Initialize Gemini model
+    console.log("🧠 Normalized chat history:");
+    console.dir(normalizedChats, { depth: null });
+
+    /** 🤖 2️⃣ Initialize Gemini model with function calling */
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
+      systemInstruction: `
+You are an intelligent agent that always has full access to the chat history.
+Use all prior messages to maintain context and continuity.
+Never say "I don't have access to previous conversations."
+When the user asks follow-up questions, infer missing details from history.
+If you can answer without research, do so confidently.
+Only call "research" when a new location is introduced.
+`,
       tools: [
         {
           functionDeclarations: [
@@ -54,58 +77,84 @@ export async function handleUserQuery(req: Request, res: Response) {
       ],
     });
 
-    // 3️⃣ Start the chat with normalized history
-    const chat = model.startChat({ history: normalizedChats });
+    /** 💬 3️⃣ Start chat with context */
+    const chat = model.startChat({
+      history: [
+        {
+          role: "user",
+          parts: [
+            {
+              text:
+                "Here are all past messages in this chat. Use them to answer naturally. " +
+                "You have access to full conversation memory.",
+            },
+          ],
+        },
+        ...normalizedChats,
+      ],
+    });
 
-    // 4️⃣ Send the user query
+    /** 📨 4️⃣ Send user query to Gemini */
     const result = await chat.sendMessage(userQuery);
-
-    // 5️⃣ Check if the model wants to call the research function
+    const responseText = result.response.text() || "";
     const call = result.response.functionCalls()?.[0];
 
-    const queryMatchesPrevious = previousChats.some(
-      (chat) =>
-        typeof chat.message === "string" &&
-        chat.message.toLowerCase().includes(userQuery.toLowerCase())
-    );
+    /** 🚫 5️⃣ Smarter duplicate detection — skip only after first query */
+    const userMessages = previousChats.filter((c) => c.role === "user");
+    const lastUserMsg = userMessages.at(-1)?.content?.trim()?.toLowerCase();
 
-    if (!queryMatchesPrevious && call && call.name === "research") {
-      // Parse the function call arguments safely
-      let args: any = {};
-      if (typeof call.args === "string") {
-        try {
-          args = JSON.parse(call.args);
-        } catch {
-          args = {};
-        }
-      } else {
-        args = call.args;
+    const queryMatchesPrevious =
+      userMessages.length > 1 && lastUserMsg === userQuery.toLowerCase();
+
+    if (queryMatchesPrevious) {
+      console.log("🟡 Skipping redundant research (duplicate query detected)");
+    }
+
+    /** 🧩 6️⃣ Handle Gemini function call (research) */
+    if (!queryMatchesPrevious && call?.name === "research") {
+      console.log("🔍 Gemini requested research with args:", call.args);
+
+      let args: Record<string, any> = {};
+      try {
+        args =
+          typeof call.args === "string"
+            ? JSON.parse(call.args)
+            : call.args || {};
+      } catch (err) {
+        console.warn("⚠️ Failed to parse function args:", err);
       }
 
-      const loc = typeof args.location === "string" ? args.location : "";
+      const loc =
+        typeof args.location === "string" && args.location.trim()
+          ? args.location
+          : userQuery;
+
       const st =
         typeof args.state === "boolean"
           ? args.state
           : loc
-            ? isState(loc)
-            : false;
+          ? isState(loc)
+          : false;
 
-      // 6️⃣ Run the research function
-      // Run the research function
+      /** 🧪 Run the research function */
       const data = await researchFunction(st, loc, previousChats, userQuery);
 
-      // Send the research result safely as a string
+      /** 🧾 7️⃣ Feed the research results back into Gemini */
       const next = await chat.sendMessage(JSON.stringify(data, null, 2));
+      const reply = next.response.text() || "";
 
-      return res.json({ reply: next.response.text() || "" });
+      console.log("✅ Final Gemini reply after research:", reply);
+      return res.json({ reply });
     }
 
-    // 8️⃣ Otherwise, return the normal chat response
-    return res.json({ reply: result.response.text() || "" });
+    /** 🧾 8️⃣ Return Gemini’s normal response */
+    console.log("✅ Gemini direct reply:", responseText);
+    return res.json({ reply: responseText });
   } catch (error: any) {
-    console.error("Error in handleUserQuery:", error);
-    return res
-      .status(500)
-      .json({ error: "Server error", details: error.message });
+    console.error("❌ Error in handleUserQuery:", error);
+    return res.status(500).json({
+      error: "Server error",
+      details: error.message,
+    });
   }
 }
