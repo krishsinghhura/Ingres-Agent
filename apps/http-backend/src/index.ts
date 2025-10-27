@@ -9,7 +9,7 @@ import cors from "cors";
 const app=express();
 
 app.use(cors({
-  origin: ["http://localhost:5173"],
+  origin: ["http://localhost:5173","https://15.206.116.219:5173/","https://ingres-agent"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true, 
 }));
