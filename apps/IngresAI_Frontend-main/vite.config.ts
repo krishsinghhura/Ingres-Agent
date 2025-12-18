@@ -4,6 +4,15 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+
+  server: {
+    host: true, // or "0.0.0.0"
+    allowedHosts: [
+      "ingres-agent.space",
+      "www.ingres-agent.space",
+    ],
+  },
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
