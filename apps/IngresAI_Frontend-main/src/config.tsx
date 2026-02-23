@@ -1,1 +1,1 @@
-export const BASE_URL="http://43.204.114.81:9001/api"
+export const BASE_URL="http://http-backend-production-6d0c.up.railway.app/api"
